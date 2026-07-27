@@ -24,10 +24,14 @@ const UndoRedoControls = () => {
     () =>
       historyStack.map((entry, index) => ({
         index,
-        label: buildHistoryEntryLabel(entry, index, historyStack[index - 1]),
+        label: buildHistoryEntryLabel(
+          entry.layout,
+          index,
+          historyStack[index - 1]?.layout
+        ),
         isActive: index === historyIndex,
       })),
-    [historyIndex, historyStack],
+    [historyIndex, historyStack]
   );
 
   const handleToggleHistory = useCallback(() => {

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 
 import {
   GRID_COLS_PRESETS,
@@ -20,15 +20,32 @@ import {
   MAX_GRID_ROW_HEIGHT,
   MIN_GRID_ROW_HEIGHT,
 } from '@/constants/gridRowHeight';
+import {
+  GRID_ROWS_PRESETS,
+  MAX_GRID_ROWS,
+  MIN_GRID_ROWS,
+} from '@/constants/gridRows';
 import { useDashboardStore } from '@/store/useDashboardStore';
+
+import {
+  ADMIN_NAV_LABEL,
+  DID_NAV_LABEL,
+  HEADER_BUTTON_ORDER,
+  VIEWER_NAV_LABEL,
+} from '@/constants/uiButtonOrder';
 
 import UndoRedoControls from './UndoRedoControls';
 import LayoutSaveControls from './LayoutSaveControls';
+import PresetControls from './PresetControls';
+import AppSelector from './AppSelector';
 
 import * as S from './GridColsSettings.style';
 
 const isColsPresetValue = (value: number) =>
   GRID_COLS_PRESETS.includes(value as (typeof GRID_COLS_PRESETS)[number]);
+
+const isRowsPresetValue = (value: number) =>
+  GRID_ROWS_PRESETS.includes(value as (typeof GRID_ROWS_PRESETS)[number]);
 
 const isGapPresetValue = (value: number) =>
   GRID_GAP_PRESETS.includes(value as (typeof GRID_GAP_PRESETS)[number]);
@@ -46,6 +63,9 @@ const isColWidthPresetValue = (value: number) =>
 const clampGridCols = (value: number) =>
   Math.min(MAX_GRID_COLS, Math.max(MIN_GRID_COLS, value));
 
+const clampGridRows = (value: number) =>
+  Math.min(MAX_GRID_ROWS, Math.max(MIN_GRID_ROWS, value));
+
 const clampGridGap = (value: number) =>
   Math.min(MAX_GRID_GAP, Math.max(MIN_GRID_GAP, value));
 
@@ -58,20 +78,29 @@ const clampGridColWidth = (value: number) =>
 const GridColsSettings = () => {
   const {
     gridCols,
+    gridRows,
     gridGap,
     gridRowHeight,
     gridColWidth,
     isGridLinesVisible,
-    forbiddenZones,
     isForbiddenZonesVisible,
+    isHeaderZoneFixed,
+    isSidebarZoneFixed,
+    builderMode,
     setGridCols,
+    setGridRows,
     setGridGap,
     setGridRowHeight,
     setGridColWidth,
     setGridLinesVisible,
     setForbiddenZonesVisible,
+    setHeaderZoneFixed,
+    setSidebarZoneFixed,
+    setBuilderMode,
+    setCurrentPage,
   } = useDashboardStore();
   const [customColsInput, setCustomColsInput] = useState(String(gridCols));
+  const [customRowsInput, setCustomRowsInput] = useState(String(gridRows));
   const [customGapInput, setCustomGapInput] = useState(String(gridGap));
   const [customRowHeightInput, setCustomRowHeightInput] = useState(
     String(gridRowHeight)
@@ -79,6 +108,43 @@ const GridColsSettings = () => {
   const [customColWidthInput, setCustomColWidthInput] = useState(
     String(gridColWidth)
   );
+
+  // 앱 전환/프리셋 적용/스냅샷 불러오기 등 "외부에서" grid 설정 자체가
+  // 통째로 교체되는 경우, 직접 입력 텍스트박스도 최신 값으로 맞춘다.
+  // (렌더 중 상태 조정 패턴 — effect 대신 사용해 값이 바뀐 바로 그 렌더에
+  // 반영하고, 사용자가 직접 입력 중인 값은 건드리지 않는다.)
+  const [lastSyncedGridCols, setLastSyncedGridCols] = useState(gridCols);
+  const [lastSyncedGridRows, setLastSyncedGridRows] = useState(gridRows);
+  const [lastSyncedGridGap, setLastSyncedGridGap] = useState(gridGap);
+  const [lastSyncedGridRowHeight, setLastSyncedGridRowHeight] =
+    useState(gridRowHeight);
+  const [lastSyncedGridColWidth, setLastSyncedGridColWidth] =
+    useState(gridColWidth);
+
+  if (gridCols !== lastSyncedGridCols) {
+    setLastSyncedGridCols(gridCols);
+    setCustomColsInput(String(gridCols));
+  }
+
+  if (gridRows !== lastSyncedGridRows) {
+    setLastSyncedGridRows(gridRows);
+    setCustomRowsInput(String(gridRows));
+  }
+
+  if (gridGap !== lastSyncedGridGap) {
+    setLastSyncedGridGap(gridGap);
+    setCustomGapInput(String(gridGap));
+  }
+
+  if (gridRowHeight !== lastSyncedGridRowHeight) {
+    setLastSyncedGridRowHeight(gridRowHeight);
+    setCustomRowHeightInput(String(gridRowHeight));
+  }
+
+  if (gridColWidth !== lastSyncedGridColWidth) {
+    setLastSyncedGridColWidth(gridColWidth);
+    setCustomColWidthInput(String(gridColWidth));
+  }
 
   const handleClickColsPreset = useCallback(
     (cols: number) => {
@@ -115,6 +181,43 @@ const GridColsSettings = () => {
       }
     },
     [handleCommitCustomColsInput]
+  );
+
+  const handleClickRowsPreset = useCallback(
+    (rows: number) => {
+      setCustomRowsInput(String(rows));
+      setGridRows(rows);
+    },
+    [setGridRows]
+  );
+
+  const handleChangeCustomRowsInput = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setCustomRowsInput(event.target.value);
+    },
+    []
+  );
+
+  const handleCommitCustomRowsInput = useCallback(() => {
+    const parsed = Number.parseInt(customRowsInput, 10);
+
+    if (Number.isNaN(parsed)) {
+      setCustomRowsInput(String(gridRows));
+      return;
+    }
+
+    const nextRows = clampGridRows(parsed);
+    setGridRows(nextRows);
+    setCustomRowsInput(String(nextRows));
+  }, [customRowsInput, gridRows, setGridRows]);
+
+  const handleKeyDownCustomRowsInput = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === 'Enter') {
+        handleCommitCustomRowsInput();
+      }
+    },
+    [handleCommitCustomRowsInput]
   );
 
   const handleClickGapPreset = useCallback(
@@ -235,23 +338,33 @@ const GridColsSettings = () => {
     [setGridLinesVisible]
   );
 
-  const handleClickForbiddenZones = useCallback(
-    (isVisible: boolean) => {
-      setForbiddenZonesVisible(isVisible);
-    },
-    [setForbiddenZonesVisible]
-  );
-
-  return (
-    <div style={S.toolbar}>
-      <UndoRedoControls />
-
-      <div style={S.sectionDivider} />
-
-      <LayoutSaveControls />
-
-      <div style={S.sectionDivider} />
-
+  const headerSections: Record<(typeof HEADER_BUTTON_ORDER)[number], ReactNode> = {
+    appSelector: <AppSelector />,
+    undoRedo: <UndoRedoControls />,
+    layoutSave: <LayoutSaveControls />,
+    presetControls: <PresetControls />,
+    builderMode: (
+      <div style={S.settingSection}>
+        <span style={S.label}>모드</span>
+        <div style={S.presetGroup}>
+          <button
+            type='button'
+            style={S.presetButton(builderMode === 'edit')}
+            onClick={() => setBuilderMode('edit')}
+          >
+            편집
+          </button>
+          <button
+            type='button'
+            style={S.presetButton(builderMode === 'view')}
+            onClick={() => setBuilderMode('view')}
+          >
+            뷰
+          </button>
+        </div>
+      </div>
+    ),
+    gridCols: (
       <div style={S.settingSection}>
         <span style={S.label}>그리드 컬럼</span>
         <div style={S.presetGroup}>
@@ -289,9 +402,47 @@ const GridColsSettings = () => {
           <span style={S.currentValue}>현재 {gridCols}칸</span>
         </div>
       </div>
-
-      <div style={S.sectionDivider} />
-
+    ),
+    gridRows: (
+      <div style={S.settingSection}>
+        <span style={S.label}>그리드 로우</span>
+        <div style={S.presetGroup}>
+          {GRID_ROWS_PRESETS.map((preset) => (
+            <button
+              key={preset}
+              type='button'
+              style={S.presetButton(gridRows === preset)}
+              onClick={() => handleClickRowsPreset(preset)}
+            >
+              {preset}
+            </button>
+          ))}
+        </div>
+        <div style={S.customGroup}>
+          <span style={S.customLabel}>직접 입력</span>
+          <input
+            type='number'
+            min={MIN_GRID_ROWS}
+            max={MAX_GRID_ROWS}
+            value={customRowsInput}
+            style={{
+              ...S.customInput,
+              ...(isRowsPresetValue(gridRows)
+                ? {}
+                : {
+                    borderColor: '#93c5fd',
+                    backgroundColor: '#eff6ff',
+                  }),
+            }}
+            onChange={handleChangeCustomRowsInput}
+            onBlur={handleCommitCustomRowsInput}
+            onKeyDown={handleKeyDownCustomRowsInput}
+          />
+          <span style={S.currentValue}>현재 {gridRows}줄</span>
+        </div>
+      </div>
+    ),
+    gridGap: (
       <div style={S.settingSection}>
         <span style={S.label}>컬럼 간격</span>
         <div style={S.presetGroup}>
@@ -329,9 +480,8 @@ const GridColsSettings = () => {
           <span style={S.currentValue}>현재 {gridGap}px</span>
         </div>
       </div>
-
-      <div style={S.sectionDivider} />
-
+    ),
+    gridSize: (
       <div style={S.settingSection}>
         <span style={S.label}>그리드 사이즈</span>
         <div style={S.sizeGroup}>
@@ -411,9 +561,8 @@ const GridColsSettings = () => {
           </div>
         </div>
       </div>
-
-      <div style={S.sectionDivider} />
-
+    ),
+    gridLines: (
       <div style={S.settingSection}>
         <span style={S.label}>그리드 선</span>
         <div style={S.presetGroup}>
@@ -433,38 +582,83 @@ const GridColsSettings = () => {
           </button>
         </div>
       </div>
-
-      <div style={S.sectionDivider} />
-
-      {/* <div style={S.settingSection}>
-        <span style={S.label}>배치 불가 영역</span>
+    ),
+    reservedZones: (
+      <div style={S.settingSection}>
+        <span style={S.label}>Header/Sidebar 고정 노출</span>
         <div style={S.presetGroup}>
           <button
             type='button'
-            style={S.presetButton(isForbiddenZonesVisible)}
-            onClick={() => handleClickForbiddenZones(true)}
+            style={S.presetButton(isHeaderZoneFixed)}
+            onClick={() => setHeaderZoneFixed(!isHeaderZoneFixed)}
+            title='고정 노출 시 상단 영역이 그리드를 점유해 컨테이너 배치가 제한됩니다'
           >
-            ON
+            Header {isHeaderZoneFixed ? 'ON' : 'OFF'}
           </button>
           <button
             type='button'
-            style={S.presetButton(!isForbiddenZonesVisible)}
-            onClick={() => handleClickForbiddenZones(false)}
+            style={S.presetButton(isSidebarZoneFixed)}
+            onClick={() => setSidebarZoneFixed(!isSidebarZoneFixed)}
+            title='고정 노출 시 좌측 영역이 그리드를 점유해 컨테이너 배치가 제한됩니다'
           >
-            OFF
+            Sidebar {isSidebarZoneFixed ? 'ON' : 'OFF'}
+          </button>
+          <button
+            type='button'
+            style={S.presetButton(isForbiddenZonesVisible)}
+            onClick={() => setForbiddenZonesVisible(!isForbiddenZonesVisible)}
+            title='배치 불가 영역을 그리드 위에 시각적으로 표시합니다'
+          >
+            표시 {isForbiddenZonesVisible ? 'ON' : 'OFF'}
           </button>
         </div>
-        {forbiddenZones.length > 0 && (
-          <ul style={S.zoneList}>
-            {forbiddenZones.map((zone) => (
-              <li key={zone.id} style={S.zoneListItem}>
-                {zone.label ?? zone.id} · ({zone.x}, {zone.y}) {zone.w}×
-                {zone.h}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div> */}
+      </div>
+    ),
+    viewerNav: (
+      <div style={S.settingSection}>
+        <button
+          type='button'
+          style={S.viewerNavButton}
+          onClick={() => setCurrentPage('viewer')}
+          title='설정 툴바 없이, 현재 창 크기에 맞는 브레이크포인트 그리드로 배치를 확인합니다'
+        >
+          {VIEWER_NAV_LABEL}
+        </button>
+      </div>
+    ),
+    didNav: (
+      <div style={S.settingSection}>
+        <button
+          type='button'
+          style={S.didNavButton}
+          onClick={() => setCurrentPage('did')}
+          title='실제 창/디바이스 해상도와 무관하게 1080×1920 고정 캔버스로 DID 배치를 확인합니다'
+        >
+          {DID_NAV_LABEL}
+        </button>
+      </div>
+    ),
+    adminNav: (
+      <div style={S.settingSection}>
+        <button
+          type='button'
+          style={S.adminNavButton}
+          onClick={() => setCurrentPage('admin')}
+        >
+          {ADMIN_NAV_LABEL}
+        </button>
+      </div>
+    ),
+  };
+
+  return (
+    <div style={S.toolbar}>
+      {HEADER_BUTTON_ORDER.map((buttonId, index) => (
+        <div key={buttonId} style={{ display: 'contents' }}>
+          {index > 0 && <div style={S.sectionDivider} />}
+          {headerSections[buttonId]}
+        </div>
+      ))}
     </div>
   );
 };

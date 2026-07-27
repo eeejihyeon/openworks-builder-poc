@@ -1,7 +1,7 @@
-import type { Layout } from "react-grid-layout";
+import type { Layout } from 'react-grid-layout';
 
-import type { ForbiddenZone } from "@/types/forbiddenZone";
-import { overlapsForbiddenZone } from "@/utils/forbiddenZone";
+import type { ForbiddenZone } from '@/types/forbiddenZone';
+import { overlapsForbiddenZone } from '@/utils/forbiddenZone';
 
 export const findNextLayoutPosition = (
   layout: Layout,
@@ -9,13 +9,18 @@ export const findNextLayoutPosition = (
   height: number,
   cols: number,
   forbiddenZones: ForbiddenZone[] = [],
+  maxRows?: number
 ) => {
-  const maxY = layout.reduce(
+  const layoutMaxY = layout.reduce(
     (max, item) => Math.max(max, item.y + item.h),
-    0,
+    0
   );
+  const searchMaxY =
+    maxRows === undefined
+      ? layoutMaxY + 20
+      : Math.max(0, maxRows - height);
 
-  for (let y = 0; y <= maxY; y += 1) {
+  for (let y = 0; y <= searchMaxY; y += 1) {
     for (let x = 0; x <= cols - width; x += 1) {
       const candidate = { x, y, w: width, h: height };
       const isOverlapping = layout.some(
@@ -23,7 +28,7 @@ export const findNextLayoutPosition = (
           x < item.x + item.w &&
           x + width > item.x &&
           y < item.y + item.h &&
-          y + height > item.y,
+          y + height > item.y
       );
 
       if (!isOverlapping && !overlapsForbiddenZone(candidate, forbiddenZones)) {
@@ -32,22 +37,5 @@ export const findNextLayoutPosition = (
     }
   }
 
-  for (let y = maxY; y <= maxY + 20; y += 1) {
-    for (let x = 0; x <= cols - width; x += 1) {
-      const candidate = { x, y, w: width, h: height };
-      const isOverlapping = layout.some(
-        (item) =>
-          x < item.x + item.w &&
-          x + width > item.x &&
-          y < item.y + item.h &&
-          y + height > item.y,
-      );
-
-      if (!isOverlapping && !overlapsForbiddenZone(candidate, forbiddenZones)) {
-        return { x, y };
-      }
-    }
-  }
-
-  return { x: 0, y: maxY };
+  return null;
 };

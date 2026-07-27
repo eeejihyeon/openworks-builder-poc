@@ -5,7 +5,7 @@ export const MAX_LAYOUT_HISTORY = 50;
 export const cloneLayout = (layout: Layout): Layout =>
   layout.map((item) => ({ ...item }));
 
-export const trimHistoryStack = (stack: Layout[]) => {
+export const trimHistoryStack = <T>(stack: T[]): T[] => {
   if (stack.length <= MAX_LAYOUT_HISTORY) {
     return stack;
   }
@@ -42,24 +42,24 @@ export const buildHistoryEntryLabel = (
   previousLayout?: Layout,
 ) => {
   if (index === 0) {
-    return "초기 상태";
+    return '초기 상태';
   }
 
-  const widgetCount = layout.length;
+  const containerCount = layout.length;
 
   if (!previousLayout) {
-    return `액션 ${index} · 위젯 ${widgetCount}개`;
+    return `액션 ${index} · 컨테이너 ${containerCount}개`;
   }
 
   const previousCount = previousLayout.length;
 
-  if (widgetCount > previousCount) {
-    return `액션 ${index} · 위젯 추가 (${widgetCount}개)`;
+  if (containerCount > previousCount) {
+    return `액션 ${index} · 컨테이너 추가 (${containerCount}개)`;
   }
 
-  if (widgetCount < previousCount) {
-    return `액션 ${index} · 위젯 삭제 (${widgetCount}개)`;
+  if (containerCount < previousCount) {
+    return `액션 ${index} · 컨테이너 삭제 (${containerCount}개)`;
   }
 
-  return `액션 ${index} · 레이아웃 변경 (${widgetCount}개)`;
+  return `액션 ${index} · 레이아웃 변경 (${containerCount}개)`;
 };

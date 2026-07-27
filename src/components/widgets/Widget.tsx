@@ -1,6 +1,6 @@
-import type { MouseEvent, ReactNode } from "react";
+import type { MouseEvent, ReactNode } from 'react';
 
-import * as S from "./Widget.style";
+import * as S from './Widget.style';
 
 type WidgetProps = {
   title: string;
@@ -17,13 +17,13 @@ const Widget = ({ title, onClickRemove, children }: WidgetProps) => {
   return (
     <div style={S.wrapper}>
       <div style={S.header}>
-        <div className="widget-drag-handle" style={S.dragHandleArea}>
+        <div className='widget-drag-handle' style={S.dragHandleArea}>
           <span style={S.title}>{title}</span>
           <span style={S.dragHandleIcon}>⠿</span>
         </div>
         {onClickRemove && (
           <button
-            type="button"
+            type='button'
             aria-label={`${title} 제거`}
             style={S.removeButton}
             onClick={handleClickRemove}
