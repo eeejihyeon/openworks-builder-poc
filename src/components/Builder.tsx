@@ -312,7 +312,13 @@ const Builder = () => {
       >
         <GridColsSettings />
         {mounted && (
-          <div style={{ ...S.gridWrapper, width: gridWidth }}>
+          <div
+            style={{
+              ...S.gridWrapper,
+              width: gridWidth,
+              minWidth: gridWidth,
+            }}
+          >
             {isGridLinesVisible && (
               <GridBackground
                 width={gridWidth}
@@ -334,8 +340,9 @@ const Builder = () => {
               />
             )}
             <GridLayout
-              key={gridKey}
+              key={`${gridKey}-${gridColWidth}-${gridCols}-${gridGap}`}
               width={gridWidth}
+              style={{ width: gridWidth }}
               layout={visibleLayout}
               compactor={GRID_COMPACTOR}
               droppingItem={droppingItem}
