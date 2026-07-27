@@ -9,17 +9,17 @@ import 'react-resizable/css/styles.css';
 import { pushWithoutCompactCompactor } from '@/constants/gridCompactor';
 import { DROPPING_WIDGET_ID } from '@/constants/gridDrop';
 import { DEFAULT_ROW_GAP } from '@/constants/gridGap';
-import { getWidgetCatalogItem } from '@/constants/widgetCatalog';
+import { getContainerCatalogItem } from '@/constants/containerCatalog';
 import useLayoutHistoryShortcuts from '@/hooks/useLayoutHistoryShortcuts';
 import { useDashboardStore } from '@/store/useDashboardStore';
-import { resolveWidgetType } from '@/utils/buildWidgetInstanceId';
 import { calculateGridWidth } from '@/utils/calculateGridWidth';
 import { cloneLayout, isSameLayout } from '@/utils/layoutHistory';
+import { buildReservedZones } from '@/utils/reservedZone';
 
+import ForbiddenZonesOverlay from './grid/ForbiddenZonesOverlay';
+import GridContainer from './containers/GridContainer';
 import GridColsSettings from './settings/GridColsSettings';
 import ComponentSidebar from './sidebar/ComponentSidebar';
-import ForbiddenZonesOverlay from './grid/ForbiddenZonesOverlay';
-import Widget from './widgets/Widget';
 
 import * as S from './Builder.style';
 
@@ -27,14 +27,27 @@ const DRAG_CONFIG = { enabled: true, handle: '.widget-drag-handle' };
 const RESIZE_CONFIG = { enabled: true };
 const DROP_CONFIG = { enabled: true };
 const GRID_COMPACTOR = pushWithoutCompactCompactor;
-const MIN_GRID_ROWS = 10;
 const GRID_LINE_COLOR = '#e2e8f0';
 
 const buildInitialLayout = () =>
   cloneLayout(useDashboardStore.getState().layout);
 
+const containerHasAnyWidget = (
+  containerId: string,
+  containers: ReturnType<typeof useDashboardStore.getState>['containers']
+) => {
+  const entity = containers[containerId];
+
+  if (!entity) {
+    return false;
+  }
+
+  return entity.panels.some((panel) => panel.widget != null);
+};
+
 const Builder = () => {
   const gridCols = useDashboardStore((state) => state.gridCols);
+  const gridRows = useDashboardStore((state) => state.gridRows);
   const gridGap = useDashboardStore((state) => state.gridGap);
   const gridRowHeight = useDashboardStore((state) => state.gridRowHeight);
   const gridColWidth = useDashboardStore((state) => state.gridColWidth);
@@ -45,17 +58,32 @@ const Builder = () => {
   const isForbiddenZonesVisible = useDashboardStore(
     (state) => state.isForbiddenZonesVisible
   );
+  const isHeaderZoneFixed = useDashboardStore(
+    (state) => state.isHeaderZoneFixed
+  );
+  const isSidebarZoneFixed = useDashboardStore(
+    (state) => state.isSidebarZoneFixed
+  );
+  const containers = useDashboardStore((state) => state.containers);
+  const selectedContainerId = useDashboardStore(
+    (state) => state.selectedContainerId
+  );
+  const builderMode = useDashboardStore((state) => state.builderMode);
   const commitLayout = useDashboardStore((state) => state.commitLayout);
-  const placeWidgetFromDrop = useDashboardStore(
-    (state) => state.placeWidgetFromDrop
+  const placeContainerFromDrop = useDashboardStore(
+    (state) => state.placeContainerFromDrop
   );
-  const removeWidget = useDashboardStore((state) => state.removeWidget);
-  const setDraggingWidgetType = useDashboardStore(
-    (state) => state.setDraggingWidgetType
+  const removeContainer = useDashboardStore((state) => state.removeContainer);
+  const setDraggingContainerType = useDashboardStore(
+    (state) => state.setDraggingContainerType
   );
-  const draggingWidgetType = useDashboardStore(
-    (state) => state.draggingWidgetType
+  const draggingContainerType = useDashboardStore(
+    (state) => state.draggingContainerType
   );
+  const setSelectedContainerId = useDashboardStore(
+    (state) => state.setSelectedContainerId
+  );
+  const setActivePanel = useDashboardStore((state) => state.setActivePanel);
 
   const [mountedLayout, setMountedLayout] = useState(buildInitialLayout);
   const [gridKey, setGridKey] = useState(0);
@@ -70,15 +98,15 @@ const Builder = () => {
   }, []);
 
   useEffect(() => {
-    if (!draggingWidgetType) {
+    if (!draggingContainerType) {
       isGridInteractingRef.current = false;
     }
-  }, [draggingWidgetType]);
+  }, [draggingContainerType]);
 
   useEffect(
     () =>
       useDashboardStore.subscribe((state, previousState) => {
-        if (isGridInteractingRef.current || state.draggingWidgetType) {
+        if (isGridInteractingRef.current || state.draggingContainerType) {
           return;
         }
 
@@ -91,24 +119,47 @@ const Builder = () => {
     [remountGrid]
   );
 
-  const droppingItem = useMemo<LayoutItem>(
-    () => ({
+  const visibleLayout = useMemo(() => {
+    const baseLayout =
+      builderMode === 'edit'
+        // 편집 모드: container 엔티티 존재 기준
+        ? mountedLayout.filter((item) => Boolean(containers[item.i]))
+        // 뷰 모드: container.widget 존재 기준
+        : mountedLayout.filter((item) =>
+            containerHasAnyWidget(item.i, containers)
+          );
+
+    // 위젯이 배치된 컨테이너는 사이즈 결정권이 컨테이너에 고정되므로
+    // 드래그(위치 이동)는 허용하되 리사이즈는 잠가 위젯과 함께 크기가
+    // 바뀌지 않도록 한다.
+    return baseLayout.map((item) => ({
+      ...item,
+      isResizable: !containerHasAnyWidget(item.i, containers),
+    }));
+  }, [builderMode, containers, mountedLayout]);
+
+  const droppingItem = useMemo<LayoutItem>(() => {
+    const catalogItem = draggingContainerType
+      ? getContainerCatalogItem(draggingContainerType)
+      : null;
+
+    return {
       i: DROPPING_WIDGET_ID,
       x: 0,
       y: 0,
-      w: 3,
-      h: 4,
-    }),
-    []
-  );
+      w: catalogItem?.defaultW ?? 6,
+      h: catalogItem?.defaultH ?? 4,
+    };
+  }, [draggingContainerType]);
 
   const gridConfig = useMemo(
     () => ({
       cols: gridCols,
       rowHeight: gridRowHeight,
       margin: [gridGap, DEFAULT_ROW_GAP] as [number, number],
+      maxRows: gridRows,
     }),
-    [gridCols, gridRowHeight, gridGap]
+    [gridCols, gridRowHeight, gridGap, gridRows]
   );
 
   const gridWidth = useMemo(
@@ -116,18 +167,20 @@ const Builder = () => {
     [width, gridColWidth, gridCols, gridGap]
   );
 
-  const gridRows = useMemo(() => {
-    const maxRowFromLayout = mountedLayout.reduce(
-      (max, item) => Math.max(max, item.y + item.h),
-      0
-    );
-    const maxRowFromZones = forbiddenZones.reduce(
-      (max, zone) => Math.max(max, zone.y + zone.h),
-      0
-    );
-
-    return Math.max(maxRowFromLayout, maxRowFromZones, MIN_GRID_ROWS);
-  }, [forbiddenZones, mountedLayout]);
+  // Header/Sidebar 고정 노출 여부에 따라 그리드를 점유하는 예약 영역 +
+  // 사용자 지정 금지 영역을 합친 실제(effective) 배치 불가 영역
+  const effectiveForbiddenZones = useMemo(
+    () => [
+      ...forbiddenZones,
+      ...buildReservedZones(
+        gridCols,
+        gridRows,
+        isHeaderZoneFixed,
+        isSidebarZoneFixed
+      ),
+    ],
+    [forbiddenZones, gridCols, gridRows, isHeaderZoneFixed, isSidebarZoneFixed]
+  );
 
   const handleDragStart = useCallback(() => {
     isGridInteractingRef.current = true;
@@ -163,13 +216,13 @@ const Builder = () => {
   );
 
   const handleDropDragOver = useCallback(() => {
-    const widgetType = useDashboardStore.getState().draggingWidgetType;
+    const containerType = useDashboardStore.getState().draggingContainerType;
 
-    if (!widgetType) {
+    if (!containerType) {
       return false;
     }
 
-    const catalogItem = getWidgetCatalogItem(widgetType);
+    const catalogItem = getContainerCatalogItem(containerType);
 
     if (!catalogItem) {
       return false;
@@ -183,40 +236,80 @@ const Builder = () => {
 
   const handleDrop = useCallback(
     (newLayout: Layout, droppedItem: LayoutItem | undefined) => {
-      const widgetType = useDashboardStore.getState().draggingWidgetType;
+      const containerType = useDashboardStore.getState().draggingContainerType;
 
       isGridInteractingRef.current = false;
-      setDraggingWidgetType(null);
+      setDraggingContainerType(null);
 
-      if (!droppedItem || !widgetType) {
+      if (!droppedItem || !containerType) {
         return;
       }
 
-      placeWidgetFromDrop(widgetType, newLayout, droppedItem);
+      placeContainerFromDrop(containerType, newLayout, droppedItem);
     },
-    [placeWidgetFromDrop, setDraggingWidgetType]
+    [placeContainerFromDrop, setDraggingContainerType]
   );
+
+  const handleBackgroundClick = useCallback(() => {
+    if (builderMode === 'edit') {
+      setSelectedContainerId(null);
+    }
+  }, [builderMode, setSelectedContainerId]);
+
+  const isInteractive = builderMode === 'edit';
 
   const gridChildren = useMemo(
     () =>
-      mountedLayout.map((item) => {
-        const widgetType = resolveWidgetType(item.i);
-        const catalogItem = getWidgetCatalogItem(widgetType);
-        const title = catalogItem?.label ?? item.i;
+      visibleLayout.map((item) => {
+        const entity = containers[item.i];
+
+        if (!entity) {
+          return null;
+        }
+
+        const catalogItem = getContainerCatalogItem(entity.type);
+        const title = catalogItem?.label ?? entity.type;
 
         return (
           <div key={item.i} style={{ height: '100%' }}>
-            <Widget title={title} onClickRemove={() => removeWidget(item.i)} />
+            <GridContainer
+              entity={entity}
+              title={title}
+              isSelected={selectedContainerId === item.i}
+              mode={builderMode}
+              onSelect={() => {
+                if (builderMode === 'edit') {
+                  setSelectedContainerId(item.i);
+                }
+              }}
+              onRemove={() => removeContainer(item.i)}
+              onActivePanelChange={(panelIndex) =>
+                setActivePanel(item.i, panelIndex)
+              }
+            />
           </div>
         );
       }),
-    [mountedLayout, removeWidget]
+    [
+      visibleLayout,
+      containers,
+      selectedContainerId,
+      builderMode,
+      removeContainer,
+      setSelectedContainerId,
+      setActivePanel,
+    ]
   );
 
   return (
     <div style={S.builderLayout}>
       <ComponentSidebar />
-      <div ref={containerRef} style={S.mainArea}>
+      <div
+        ref={containerRef}
+        style={S.mainArea}
+        onClick={handleBackgroundClick}
+        role='presentation'
+      >
         <GridColsSettings />
         {mounted && (
           <div style={{ ...S.gridWrapper, width: gridWidth }}>
@@ -230,26 +323,35 @@ const Builder = () => {
                 color={GRID_LINE_COLOR}
               />
             )}
-            {/* {isForbiddenZonesVisible && (
+            {isForbiddenZonesVisible && (
               <ForbiddenZonesOverlay
                 width={gridWidth}
                 cols={gridCols}
                 rowHeight={gridRowHeight}
                 margin={[gridGap, DEFAULT_ROW_GAP]}
                 rows={gridRows}
-                zones={forbiddenZones}
+                zones={effectiveForbiddenZones}
               />
-            )} */}
+            )}
             <GridLayout
               key={gridKey}
               width={gridWidth}
-              layout={mountedLayout}
+              layout={visibleLayout}
               compactor={GRID_COMPACTOR}
               droppingItem={droppingItem}
               gridConfig={gridConfig}
-              dragConfig={DRAG_CONFIG}
-              resizeConfig={RESIZE_CONFIG}
-              dropConfig={DROP_CONFIG}
+              dragConfig={{
+                ...DRAG_CONFIG,
+                enabled: isInteractive,
+              }}
+              resizeConfig={{
+                ...RESIZE_CONFIG,
+                enabled: isInteractive,
+              }}
+              dropConfig={{
+                ...DROP_CONFIG,
+                enabled: isInteractive,
+              }}
               onDragStart={handleDragStart}
               onDragStop={handleDragStop}
               onResizeStop={handleResizeStop}

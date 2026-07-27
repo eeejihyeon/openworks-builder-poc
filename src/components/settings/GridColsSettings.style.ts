@@ -165,6 +165,39 @@ export const historyToggleButton = (isOpen: boolean): CSSProperties => ({
   cursor: "pointer",
 });
 
+export const adminNavButton: CSSProperties = {
+  minWidth: "72px",
+  padding: "6px 12px",
+  fontSize: "13px",
+  fontWeight: 600,
+  color: "#0f766e",
+  backgroundColor: "#f0fdfa",
+  border: "1px solid #99f6e4",
+  borderRadius: "6px",
+  cursor: "pointer",
+};
+export const viewerNavButton: CSSProperties = {
+  minWidth: "72px",
+  padding: "6px 12px",
+  fontSize: "13px",
+  fontWeight: 700,
+  color: "#ffffff",
+  backgroundColor: "#6366f1",
+  border: "1px solid #6366f1",
+  borderRadius: "6px",
+  cursor: "pointer",
+};
+export const didNavButton: CSSProperties = {
+  minWidth: "72px",
+  padding: "6px 12px",
+  fontSize: "13px",
+  fontWeight: 700,
+  color: "#ffffff",
+  backgroundColor: "#0f172a",
+  border: "1px solid #0f172a",
+  borderRadius: "6px",
+  cursor: "pointer",
+};
 export const zoneList: CSSProperties = {
   margin: "10px 0 0",
   padding: "0",
