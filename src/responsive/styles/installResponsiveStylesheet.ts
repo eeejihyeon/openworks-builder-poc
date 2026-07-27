@@ -9,6 +9,7 @@ import { generateResponsiveCss } from '@/responsive/styles/generateResponsiveCss
 
 const STYLE_TAG_ID = 'responsive-viewer-tokens';
 const ROOT_CLASS = 'rs-root';
+const ASPECT_LOCKED_CLASS = 'rs-aspect-locked';
 
 let refCount = 0;
 
@@ -37,9 +38,16 @@ export const installResponsiveStylesheet = (
 
     if (refCount === 0) {
       document.documentElement.classList.remove(ROOT_CLASS);
+      document.documentElement.classList.remove(ASPECT_LOCKED_CLASS);
       document.getElementById(STYLE_TAG_ID)?.remove();
     }
   };
 };
 
+/** 뷰어에서 비율 고정 ON/OFF에 따라 html 클래스를 토글한다. */
+export const setResponsiveAspectLocked = (locked: boolean) => {
+  document.documentElement.classList.toggle(ASPECT_LOCKED_CLASS, locked);
+};
+
 export const RESPONSIVE_ROOT_CLASS = ROOT_CLASS;
+export const RESPONSIVE_ASPECT_LOCKED_CLASS = ASPECT_LOCKED_CLASS;

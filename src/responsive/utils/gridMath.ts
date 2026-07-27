@@ -9,6 +9,10 @@
 
 import { REM_BASE_PX, type BreakpointToken } from '@/responsive/tokens/breakpoints';
 
+/** 셀 비율 고정 시 사용하는 width:height (48:32 = 3:2). */
+export const CELL_ASPECT_RATIO_W = 3;
+export const CELL_ASPECT_RATIO_H = 2;
+
 export const pxToRem = (px: number, remBasePx: number = REM_BASE_PX): number =>
   px / remBasePx;
 
@@ -20,6 +24,21 @@ export const cellWidthRem = (bp: BreakpointToken): number =>
 
 export const cellHeightRem = (bp: BreakpointToken): number =>
   pxToRem(bp.cellHeightPx);
+
+/** 너비 기준 3:2 비율 높이. */
+export const heightFromAspectWidth = (width: number): number =>
+  (width * CELL_ASPECT_RATIO_H) / CELL_ASPECT_RATIO_W;
+
+export const effectiveCellHeightPx = (
+  bp: BreakpointToken,
+  aspectLocked = false
+): number =>
+  aspectLocked ? heightFromAspectWidth(bp.cellWidthPx) : bp.cellHeightPx;
+
+export const effectiveCellHeightRem = (
+  bp: BreakpointToken,
+  aspectLocked = false
+): number => pxToRem(effectiveCellHeightPx(bp, aspectLocked));
 
 export const gutterRem = (bp: BreakpointToken): number => pxToRem(bp.gutterPx);
 
@@ -57,10 +76,15 @@ export const spanHeightRem = (
 
 /** 브레이크포인트 전체 그리드(Col x Row)가 차지하는 콘텐츠 영역 크기(rem, 거터 포함). */
 export const gridContentSizeRem = (
-  bp: BreakpointToken
+  bp: BreakpointToken,
+  aspectLocked = false
 ): { widthRem: number; heightRem: number } => ({
   widthRem: spanWidthRem(bp.col, cellWidthRem(bp), gutterRem(bp)),
-  heightRem: spanHeightRem(bp.row, cellHeightRem(bp), gutterRem(bp)),
+  heightRem: spanHeightRem(
+    bp.row,
+    effectiveCellHeightRem(bp, aspectLocked),
+    gutterRem(bp)
+  ),
 });
 
 /**
@@ -111,10 +135,11 @@ export const computeCellSpanRect = (
   x: number,
   y: number,
   w: number,
-  h: number
+  h: number,
+  aspectLocked = false
 ): CellSpanRect => {
   const cellW = cellWidthRem(bp);
-  const cellH = cellHeightRem(bp);
+  const cellH = effectiveCellHeightRem(bp, aspectLocked);
   const gap = gutterRem(bp);
 
   return {
@@ -141,10 +166,15 @@ export const computeCellSpanPx = (
   x: number,
   y: number,
   w: number,
-  h: number
-): CellSpanRectPx => ({
-  leftPx: cellOffsetRem(x, bp.cellWidthPx, bp.gutterPx),
-  topPx: cellOffsetRem(y, bp.cellHeightPx, bp.gutterPx),
-  widthPx: spanWidthRem(w, bp.cellWidthPx, bp.gutterPx),
-  heightPx: spanHeightRem(h, bp.cellHeightPx, bp.gutterPx),
-});
+  h: number,
+  aspectLocked = false
+): CellSpanRectPx => {
+  const cellH = effectiveCellHeightPx(bp, aspectLocked);
+
+  return {
+    leftPx: cellOffsetRem(x, bp.cellWidthPx, bp.gutterPx),
+    topPx: cellOffsetRem(y, cellH, bp.gutterPx),
+    widthPx: spanWidthRem(w, bp.cellWidthPx, bp.gutterPx),
+    heightPx: spanHeightRem(h, cellH, bp.gutterPx),
+  };
+};

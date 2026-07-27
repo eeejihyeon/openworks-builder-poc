@@ -36,6 +36,7 @@ type DashboardStoreSlice = {
   gridRowHeight: number;
   gridColWidth: number;
   isGridLinesVisible: boolean;
+  isCellAspectRatioLocked: boolean;
   forbiddenZones: ForbiddenZone[];
   isForbiddenZonesVisible: boolean;
   isHeaderZoneFixed: boolean;
@@ -302,6 +303,7 @@ export const buildDashboardSnapshot = (
     rowHeight: state.gridRowHeight,
     colWidth: state.gridColWidth,
     isGridLinesVisible: state.isGridLinesVisible,
+    isCellAspectRatioLocked: state.isCellAspectRatioLocked,
     forbiddenZones: cloneForbiddenZones(state.forbiddenZones),
     isForbiddenZonesVisible: state.isForbiddenZonesVisible,
     isHeaderZoneFixed: state.isHeaderZoneFixed,
@@ -365,6 +367,10 @@ export const parseDashboardSnapshot = (json: string): DashboardSnapshot => {
     typeof grid.isSidebarZoneFixed === 'boolean'
       ? grid.isSidebarZoneFixed
       : true;
+  const isCellAspectRatioLocked =
+    typeof grid.isCellAspectRatioLocked === 'boolean'
+      ? grid.isCellAspectRatioLocked
+      : false;
   const rows = isFiniteNumber(grid.rows)
     ? clamp(grid.rows, MIN_GRID_ROWS, MAX_GRID_ROWS)
     : DEFAULT_GRID_ROWS;
@@ -384,6 +390,7 @@ export const parseDashboardSnapshot = (json: string): DashboardSnapshot => {
       rowHeight: clamp(grid.rowHeight, MIN_GRID_ROW_HEIGHT, MAX_GRID_ROW_HEIGHT),
       colWidth: clamp(grid.colWidth, MIN_GRID_COL_WIDTH, MAX_GRID_COL_WIDTH),
       isGridLinesVisible: grid.isGridLinesVisible,
+      isCellAspectRatioLocked,
       forbiddenZones,
       isForbiddenZonesVisible,
       isHeaderZoneFixed,

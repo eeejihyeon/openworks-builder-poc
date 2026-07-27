@@ -83,6 +83,7 @@ const GridColsSettings = () => {
     gridRowHeight,
     gridColWidth,
     isGridLinesVisible,
+    isCellAspectRatioLocked,
     isForbiddenZonesVisible,
     isHeaderZoneFixed,
     isSidebarZoneFixed,
@@ -93,6 +94,7 @@ const GridColsSettings = () => {
     setGridRowHeight,
     setGridColWidth,
     setGridLinesVisible,
+    setCellAspectRatioLocked,
     setForbiddenZonesVisible,
     setHeaderZoneFixed,
     setSidebarZoneFixed,
@@ -338,6 +340,13 @@ const GridColsSettings = () => {
     [setGridLinesVisible]
   );
 
+  const handleClickCellAspectLock = useCallback(
+    (isLocked: boolean) => {
+      setCellAspectRatioLocked(isLocked);
+    },
+    [setCellAspectRatioLocked]
+  );
+
   const headerSections: Record<(typeof HEADER_BUTTON_ORDER)[number], ReactNode> = {
     appSelector: <AppSelector />,
     undoRedo: <UndoRedoControls />,
@@ -485,44 +494,7 @@ const GridColsSettings = () => {
       <div style={S.settingSection}>
         <span style={S.label}>그리드 사이즈</span>
         <div style={S.sizeGroup}>
-          <div style={S.sizeRow}>
-            <span style={S.sizeLabel}>높이</span>
-            <div style={S.presetGroup}>
-              {GRID_ROW_HEIGHT_PRESETS.map((preset) => (
-                <button
-                  key={preset}
-                  type='button'
-                  style={S.presetButton(gridRowHeight === preset)}
-                  onClick={() => handleClickRowHeightPreset(preset)}
-                >
-                  {preset}px
-                </button>
-              ))}
-            </div>
-            <div style={S.customGroup}>
-              <span style={S.customLabel}>직접 입력</span>
-              <input
-                type='number'
-                min={MIN_GRID_ROW_HEIGHT}
-                max={MAX_GRID_ROW_HEIGHT}
-                value={customRowHeightInput}
-                style={{
-                  ...S.customInput,
-                  ...(isRowHeightPresetValue(gridRowHeight)
-                    ? {}
-                    : {
-                        borderColor: '#93c5fd',
-                        backgroundColor: '#eff6ff',
-                      }),
-                }}
-                onChange={handleChangeCustomRowHeightInput}
-                onBlur={handleCommitCustomRowHeightInput}
-                onKeyDown={handleKeyDownCustomRowHeightInput}
-              />
-              <span style={S.currentValue}>현재 {gridRowHeight}px</span>
-            </div>
-          </div>
-          <div style={S.sizeRow}>
+        <div style={S.sizeRow}>
             <span style={S.sizeLabel}>너비</span>
             <div style={S.presetGroup}>
               {GRID_COL_WIDTH_PRESETS.map((preset) => (
@@ -559,6 +531,64 @@ const GridColsSettings = () => {
               <span style={S.currentValue}>현재 {gridColWidth}px</span>
             </div>
           </div>
+          <div style={S.sizeRow}>
+            <span style={S.sizeLabel}>높이</span>
+            <div style={S.presetGroup}>
+              {GRID_ROW_HEIGHT_PRESETS.map((preset) => (
+                <button
+                  key={preset}
+                  type='button'
+                  disabled={isCellAspectRatioLocked}
+                  style={S.presetButton(
+                    gridRowHeight === preset,
+                    isCellAspectRatioLocked
+                  )}
+                  onClick={() => handleClickRowHeightPreset(preset)}
+                  title={
+                    isCellAspectRatioLocked
+                      ? '비율 고정 ON — 높이는 너비의 3:2로 자동 산출됩니다'
+                      : undefined
+                  }
+                >
+                  {preset}px
+                </button>
+              ))}
+            </div>
+            <div style={S.customGroup}>
+              <span style={S.customLabel}>직접 입력</span>
+              <input
+                type='number'
+                min={MIN_GRID_ROW_HEIGHT}
+                max={MAX_GRID_ROW_HEIGHT}
+                value={customRowHeightInput}
+                disabled={isCellAspectRatioLocked}
+                style={{
+                  ...S.customInput,
+                  ...(isCellAspectRatioLocked
+                    ? { opacity: 0.5, cursor: 'not-allowed' }
+                    : isRowHeightPresetValue(gridRowHeight)
+                      ? {}
+                      : {
+                          borderColor: '#93c5fd',
+                          backgroundColor: '#eff6ff',
+                        }),
+                }}
+                onChange={handleChangeCustomRowHeightInput}
+                onBlur={handleCommitCustomRowHeightInput}
+                onKeyDown={handleKeyDownCustomRowHeightInput}
+                title={
+                  isCellAspectRatioLocked
+                    ? '비율 고정 ON — 높이는 너비의 3:2로 자동 산출됩니다'
+                    : undefined
+                }
+              />
+              <span style={S.currentValue}>
+                현재 {gridRowHeight}px
+                {isCellAspectRatioLocked ? ' (3:2)' : ''}
+              </span>
+            </div>
+          </div>
+         
         </div>
       </div>
     ),
@@ -577,6 +607,29 @@ const GridColsSettings = () => {
             type='button'
             style={S.presetButton(!isGridLinesVisible)}
             onClick={() => handleClickGridLines(false)}
+          >
+            OFF
+          </button>
+        </div>
+      </div>
+    ),
+    cellAspectLock: (
+      <div style={S.settingSection}>
+        <span style={S.label}>비율 고정</span>
+        <div style={S.presetGroup}>
+          <button
+            type='button'
+            style={S.presetButton(isCellAspectRatioLocked)}
+            onClick={() => handleClickCellAspectLock(true)}
+            title='셀 높이를 너비 기준 3:2(aspect-ratio)로 산출합니다'
+          >
+            ON
+          </button>
+          <button
+            type='button'
+            style={S.presetButton(!isCellAspectRatioLocked)}
+            onClick={() => handleClickCellAspectLock(false)}
+            title='셀 높이를 명시적 rem/px 값으로 적용합니다'
           >
             OFF
           </button>

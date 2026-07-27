@@ -11,8 +11,8 @@
  *   전담한다. 두 관심사가 서로 다른 함수/블록으로 분리되어 있다.
  * - "뷰포트 1921px 이상에서 root font-size 16px 고정, 초과 여백은 margin" ->
  *   buildWideViewportBlock() 이 별도로 처리한다.
- * - "셀 너비 rem 지정 + aspect-ratio 기반 높이 자동 산출" ->
- *   `.rs-cell-unit` 규칙 (브레이크포인트 무관, Cell 이 항상 48:32 비율).
+ * - "셀 너비 rem 지정 + (기본) 높이 rem / (비율 고정 시) aspect-ratio 3:2" ->
+ *   `.rs-cell-unit` 및 `html.rs-root.rs-aspect-locked .rs-cell-unit`.
  */
 
 import {
@@ -119,12 +119,16 @@ html.rs-root .rs-grid-surface {
   box-sizing: content-box;
 }
 
-/* 셀 너비는 rem 지정, 높이는 aspect-ratio(48:32 = 3:2)로 자동 산출 */
+/* 기본: 셀 너비/높이 모두 rem. 비율 고정(rs-aspect-locked) 시 높이 = aspect-ratio 3:2 */
 html.rs-root .rs-cell-unit {
   width: var(--rs-cell-w);
+  height: var(--rs-cell-h);
+  box-sizing: border-box;
+}
+
+html.rs-root.rs-aspect-locked .rs-cell-unit {
   aspect-ratio: 3 / 2;
   height: auto;
-  box-sizing: border-box;
 }
 
 html.rs-root .rs-item {

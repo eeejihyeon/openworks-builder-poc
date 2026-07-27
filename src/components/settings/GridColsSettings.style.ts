@@ -56,7 +56,10 @@ export const presetGroup: CSSProperties = {
   gap: "6px",
 };
 
-export const presetButton = (isActive: boolean): CSSProperties => ({
+export const presetButton = (
+  isActive: boolean,
+  isDisabled = false
+): CSSProperties => ({
   minWidth: "36px",
   padding: "6px 10px",
   fontSize: "13px",
@@ -65,7 +68,8 @@ export const presetButton = (isActive: boolean): CSSProperties => ({
   backgroundColor: isActive ? "#eff6ff" : "#f8fafc",
   border: isActive ? "1px solid #93c5fd" : "1px solid #e2e8f0",
   borderRadius: "6px",
-  cursor: "pointer",
+  cursor: isDisabled ? "not-allowed" : "pointer",
+  opacity: isDisabled ? 0.5 : 1,
 });
 
 export const historyButton = (isEnabled: boolean): CSSProperties => ({

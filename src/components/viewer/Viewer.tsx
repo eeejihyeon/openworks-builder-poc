@@ -5,7 +5,10 @@ import type { ContainerEntity } from '@/types/container';
 import { getContainerCatalogItem } from '@/constants/containerCatalog';
 import GridContainer from '@/components/containers/GridContainer';
 import { useViewportBreakpoint } from '@/responsive/hooks/useViewportBreakpoint';
-import { installResponsiveStylesheet } from '@/responsive/styles/installResponsiveStylesheet';
+import {
+  installResponsiveStylesheet,
+  setResponsiveAspectLocked,
+} from '@/responsive/styles/installResponsiveStylesheet';
 import {
   computeCellSpanRect,
   gridContentSizeRem,
@@ -34,10 +37,15 @@ const hasAnyWidget = (entity: ContainerEntity) =>
  *   vw+clamp() font-size 가 유동적으로 바뀌고, 모든 셀/컨테이너는 rem
  *   단위라 함께 비례 스케일되므로 겹침/잘림 없이 항상 동일한 상대 배치를
  *   유지한다.
+ * - 비율 고정 ON이면 셀 높이를 cellWidth×2/3(3:2)로 산출하고, OFF면
+ *   토큰의 cellHeightPx→rem을 그대로 쓴다.
  */
 const Viewer = () => {
   const setCurrentPage = useDashboardStore((state) => state.setCurrentPage);
   const getAppSummary = useDashboardStore((state) => state.getAppSummary);
+  const isCellAspectRatioLocked = useDashboardStore(
+    (state) => state.isCellAspectRatioLocked
+  );
 
   // 아래 4개는 실제 값을 쓰지 않더라도 "구독"만으로 활성 앱의 데이터가
   // 바뀔 때(예: 뷰어를 열어둔 채 다른 탭에서 빌더를 편집) 리렌더를
@@ -67,6 +75,10 @@ const Viewer = () => {
 
   useEffect(() => installResponsiveStylesheet(), []);
 
+  useEffect(() => {
+    setResponsiveAspectLocked(isCellAspectRatioLocked);
+  }, [isCellAspectRatioLocked]);
+
   const summary = useMemo(
     () => getAppSummary(breakpoint.id),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -82,7 +94,10 @@ const Viewer = () => {
     []
   );
 
-  const { widthRem, heightRem } = gridContentSizeRem(breakpoint);
+  const { widthRem, heightRem } = gridContentSizeRem(
+    breakpoint,
+    isCellAspectRatioLocked
+  );
 
   // 뷰 모드(Builder 내 미리보기)와 동일하게, 위젯이 배치되지 않은 빈
   // 컨테이너는 뷰어 모드에서도 렌더링하지 않는다.
@@ -137,7 +152,8 @@ const Viewer = () => {
                 item.x,
                 item.y,
                 item.w,
-                item.h
+                item.h,
+                isCellAspectRatioLocked
               );
               const catalogItem = getContainerCatalogItem(entity.type);
               const overriddenIndex = activePanelOverrides[item.i];

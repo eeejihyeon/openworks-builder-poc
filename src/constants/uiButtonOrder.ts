@@ -13,6 +13,7 @@ export const HEADER_BUTTON_ORDER = [
   'gridGap',
   'gridSize',
   'gridLines',
+  'cellAspectLock',
   'reservedZones',
   'viewerNav',
   'didNav',

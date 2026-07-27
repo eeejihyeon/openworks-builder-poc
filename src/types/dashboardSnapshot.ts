@@ -12,6 +12,7 @@ export type DashboardGridSnapshot = {
   rowHeight: number;
   colWidth: number;
   isGridLinesVisible: boolean;
+  isCellAspectRatioLocked: boolean;
   forbiddenZones: ForbiddenZone[];
   isForbiddenZonesVisible: boolean;
   isHeaderZoneFixed: boolean;

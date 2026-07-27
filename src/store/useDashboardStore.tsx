@@ -28,6 +28,7 @@ import { resolveLayoutOverlaps } from '@/constants/gridCompactor';
 import { DROPPING_WIDGET_ID } from '@/constants/gridDrop';
 import { getContainerCatalogItem } from '@/constants/containerCatalog';
 import { getWidgetCatalogItem } from '@/constants/widgetCatalog';
+import { heightFromAspectWidth } from '@/responsive/utils/gridMath';
 import { buildContainerInstanceId } from '@/utils/buildContainerInstanceId';
 import { createContainerEntity } from '@/utils/createContainerEntity';
 import {
@@ -170,6 +171,7 @@ interface DashboardState {
   gridRowHeight: number;
   gridColWidth: number;
   isGridLinesVisible: boolean;
+  isCellAspectRatioLocked: boolean;
   forbiddenZones: ForbiddenZone[];
   isForbiddenZonesVisible: boolean;
   // Header/Sidebar 고정 노출 여부 — 고정 노출 시 해당 영역이 그리드를 점유하며
@@ -200,6 +202,7 @@ interface DashboardState {
   setGridRowHeight: (gridRowHeight: number) => void;
   setGridColWidth: (gridColWidth: number) => void;
   setGridLinesVisible: (isGridLinesVisible: boolean) => void;
+  setCellAspectRatioLocked: (isCellAspectRatioLocked: boolean) => void;
   setForbiddenZonesVisible: (isForbiddenZonesVisible: boolean) => void;
   setHeaderZoneFixed: (isHeaderZoneFixed: boolean) => void;
   setSidebarZoneFixed: (isSidebarZoneFixed: boolean) => void;
@@ -302,6 +305,13 @@ const syncPresetId = (
 
 const INITIAL_APP_SLICE = createInitialAppSlice(DEFAULT_APP_ID);
 
+const clampGridRowHeight = (value: number) =>
+  Math.min(MAX_GRID_ROW_HEIGHT, Math.max(MIN_GRID_ROW_HEIGHT, value));
+
+/** 비율 고정 ON일 때 colWidth 기준 3:2 rowHeight. */
+const rowHeightFromColWidth = (colWidth: number) =>
+  clampGridRowHeight(Math.round(heightFromAspectWidth(colWidth)));
+
 export const useDashboardStore = create<DashboardState>((set, get) => ({
   layout: INITIAL_APP_SLICE.layout,
   containers: INITIAL_APP_SLICE.containers,
@@ -314,7 +324,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   gridGap: INITIAL_APP_SLICE.gridGap,
   gridRowHeight: INITIAL_APP_SLICE.gridRowHeight,
   gridColWidth: INITIAL_APP_SLICE.gridColWidth,
-  isGridLinesVisible: false,
+  isGridLinesVisible: true,
+  isCellAspectRatioLocked: false,
   forbiddenZones: INITIAL_APP_SLICE.forbiddenZones,
   isForbiddenZonesVisible: true,
   isHeaderZoneFixed: INITIAL_APP_SLICE.isHeaderZoneFixed,
@@ -495,20 +506,48 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       gridGap,
     }),
 
-  setGridRowHeight: (gridRowHeight) =>
+  setGridRowHeight: (gridRowHeight) => {
+    if (get().isCellAspectRatioLocked) {
+      return;
+    }
+
     set({
       gridRowHeight,
-    }),
+    });
+  },
 
-  setGridColWidth: (gridColWidth) =>
+  setGridColWidth: (gridColWidth) => {
+    if (get().isCellAspectRatioLocked) {
+      set({
+        gridColWidth,
+        gridRowHeight: rowHeightFromColWidth(gridColWidth),
+      });
+      return;
+    }
+
     set({
       gridColWidth,
-    }),
+    });
+  },
 
   setGridLinesVisible: (isGridLinesVisible) =>
     set({
       isGridLinesVisible,
     }),
+
+  setCellAspectRatioLocked: (isCellAspectRatioLocked) => {
+    if (isCellAspectRatioLocked) {
+      set({
+        isCellAspectRatioLocked: true,
+        gridRowHeight: rowHeightFromColWidth(get().gridColWidth),
+      });
+      return;
+    }
+
+    set({
+      isCellAspectRatioLocked: false,
+    });
+  },
 
   setForbiddenZonesVisible: (isForbiddenZonesVisible) =>
     set({
@@ -926,6 +965,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       gridRowHeight: state.gridRowHeight,
       gridColWidth: state.gridColWidth,
       isGridLinesVisible: state.isGridLinesVisible,
+      isCellAspectRatioLocked: state.isCellAspectRatioLocked,
       forbiddenZones: state.forbiddenZones,
       isForbiddenZonesVisible: state.isForbiddenZonesVisible,
       isHeaderZoneFixed: state.isHeaderZoneFixed,
@@ -948,9 +988,12 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       gridCols: snapshot.grid.cols,
       gridRows: snapshot.grid.rows,
       gridGap: snapshot.grid.gap,
-      gridRowHeight: snapshot.grid.rowHeight,
       gridColWidth: snapshot.grid.colWidth,
+      gridRowHeight: snapshot.grid.isCellAspectRatioLocked
+        ? rowHeightFromColWidth(snapshot.grid.colWidth)
+        : snapshot.grid.rowHeight,
       isGridLinesVisible: snapshot.grid.isGridLinesVisible,
+      isCellAspectRatioLocked: snapshot.grid.isCellAspectRatioLocked,
       forbiddenZones: cloneForbiddenZones(snapshot.grid.forbiddenZones),
       isForbiddenZonesVisible: snapshot.grid.isForbiddenZonesVisible,
       isHeaderZoneFixed: snapshot.grid.isHeaderZoneFixed,
