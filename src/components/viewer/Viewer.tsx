@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useDashboardStore } from '@/store/useDashboardStore';
+import type { ContainerEntity } from '@/types/container';
 import { getContainerCatalogItem } from '@/constants/containerCatalog';
 import GridContainer from '@/components/containers/GridContainer';
 import { useViewportBreakpoint } from '@/responsive/hooks/useViewportBreakpoint';
@@ -13,6 +14,10 @@ import {
 import * as S from './Viewer.style';
 
 const noop = () => {};
+
+// 뷰(어) 모드 공통 규칙: container.widget이 하나도 없으면 빈 컨테이너는 숨긴다.
+const hasAnyWidget = (entity: ContainerEntity) =>
+  entity.panels.some((panel) => panel.widget != null);
 
 /**
  * "뷰어 모드" — 설정 툴바 없는 편집 불가 화면.
@@ -79,6 +84,18 @@ const Viewer = () => {
 
   const { widthRem, heightRem } = gridContentSizeRem(breakpoint);
 
+  // 뷰 모드(Builder 내 미리보기)와 동일하게, 위젯이 배치되지 않은 빈
+  // 컨테이너는 뷰어 모드에서도 렌더링하지 않는다.
+  const visibleLayout = useMemo(
+    () =>
+      summary.layout.filter((item) => {
+        const entity = summary.containers[item.i];
+
+        return Boolean(entity) && hasAnyWidget(entity);
+      }),
+    [summary]
+  );
+
   const hasContent = summary.layout.length > 0;
 
   return (
@@ -108,7 +125,7 @@ const Viewer = () => {
               height: `${heightRem}rem`,
             }}
           >
-            {summary.layout.map((item) => {
+            {visibleLayout.map((item) => {
               const entity = summary.containers[item.i];
 
               if (!entity) {
