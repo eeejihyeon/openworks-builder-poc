@@ -90,7 +90,7 @@ const Builder = () => {
   const isGridInteractingRef = useRef(false);
 
   useLayoutHistoryShortcuts();
-  const { containerRef, width, mounted } = useContainerWidth();
+  const { containerRef, mounted } = useContainerWidth();
 
   const remountGrid = useCallback((layout: Layout) => {
     setMountedLayout(cloneLayout(layout));
@@ -163,8 +163,8 @@ const Builder = () => {
   );
 
   const gridWidth = useMemo(
-    () => Math.min(width, calculateGridWidth(gridColWidth, gridCols, gridGap)),
-    [width, gridColWidth, gridCols, gridGap]
+    () => calculateGridWidth(gridColWidth, gridCols, gridGap),
+    [gridColWidth, gridCols, gridGap]
   );
 
   // Header/Sidebar 고정 노출 여부에 따라 그리드를 점유하는 예약 영역 +

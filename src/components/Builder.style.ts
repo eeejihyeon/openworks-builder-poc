@@ -10,6 +10,7 @@ export const mainArea: CSSProperties = {
   flex: 1,
   minWidth: 0,
   padding: '16px',
+  overflow: 'auto',
 };
 
 export const gridWrapper: CSSProperties = {
