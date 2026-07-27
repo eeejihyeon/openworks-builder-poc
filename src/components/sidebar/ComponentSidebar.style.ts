@@ -82,6 +82,37 @@ export const emptyHint: CSSProperties = {
   lineHeight: 1.5,
 };
 
+export const buttonLinkItem: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '8px',
+  padding: '10px',
+  backgroundColor: '#f8fafc',
+  border: '1px solid #e2e8f0',
+  borderRadius: '8px',
+};
+
+export const buttonLinkLabel: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '4px',
+  fontSize: '11px',
+  fontWeight: 600,
+  color: '#64748b',
+};
+
+export const buttonLinkInput: CSSProperties = {
+  boxSizing: 'border-box',
+  width: '100%',
+  padding: '8px 10px',
+  fontSize: '12px',
+  fontWeight: 400,
+  color: '#334155',
+  backgroundColor: '#ffffff',
+  border: '1px solid #e2e8f0',
+  borderRadius: '6px',
+};
+
 export const clearButton: CSSProperties = {
   width: '100%',
   padding: '10px 12px',

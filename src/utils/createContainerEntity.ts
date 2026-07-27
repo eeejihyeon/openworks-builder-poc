@@ -14,8 +14,14 @@ export const createContainerEntity = (
     activePanelIndex: 0,
     panels: Array.from({ length: panelCount }, (_, index) => ({
       id: `${id}-panel-${index + 1}`,
-      label: panelCount === 1 ? '메인' : `패널 ${index + 1}`,
+      label:
+        panelCount === 1
+          ? '메인'
+          : type === 'buttons'
+            ? `버튼 ${index + 1}`
+            : `패널 ${index + 1}`,
       widget: null,
+      link: null,
     })),
   };
 };

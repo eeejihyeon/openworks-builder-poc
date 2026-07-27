@@ -39,6 +39,9 @@ const ComponentSidebar = () => {
   const updateActiveWidgetData = useDashboardStore(
     (state) => state.updateActiveWidgetData
   );
+  const updatePanelButton = useDashboardStore(
+    (state) => state.updatePanelButton
+  );
 
   const isDraggedRef = useRef(false);
 
@@ -181,6 +184,59 @@ const ComponentSidebar = () => {
         </div>
       </>
     ),
+    buttonLinks: () => {
+      if (!selectedContainerId || selectedContainer?.type !== 'buttons') {
+        return null;
+      }
+
+      return (
+        <>
+          <div style={S.sectionHeader}>
+            <h2 style={S.title}>Buttons 설정</h2>
+            <p style={S.description}>
+              버튼/위젯 클릭 시 위젯 전환 대신 지정한 링크로 이동합니다
+            </p>
+          </div>
+          <div style={S.list}>
+            {selectedContainer.panels.map((panel, index) => (
+              <div key={panel.id} style={S.buttonLinkItem}>
+                <label style={S.buttonLinkLabel}>
+                  <span>버튼 {index + 1} 라벨</span>
+                  <input
+                    style={S.buttonLinkInput}
+                    type='text'
+                    value={panel.label}
+                    disabled={builderMode !== 'edit'}
+                    onChange={(event) =>
+                      updatePanelButton(selectedContainerId, index, {
+                        label: event.target.value,
+                      })
+                    }
+                  />
+                </label>
+                <label style={S.buttonLinkLabel}>
+                  <span>
+                    {index === 0 ? '링크 (버튼 + 위젯 클릭 시 이동)' : '링크'}
+                  </span>
+                  <input
+                    style={S.buttonLinkInput}
+                    type='text'
+                    placeholder='https://example.com'
+                    value={panel.link ?? ''}
+                    disabled={builderMode !== 'edit'}
+                    onChange={(event) =>
+                      updatePanelButton(selectedContainerId, index, {
+                        link: event.target.value,
+                      })
+                    }
+                  />
+                </label>
+              </div>
+            ))}
+          </div>
+        </>
+      );
+    },
     widgetDataForm: () => {
       if (builderMode !== 'edit' || !selectedContainerId || !activeWidget) {
         return null;

@@ -1,4 +1,11 @@
-import type { BuilderMode, ContainerEntity } from '@/types/container';
+import type { MouseEvent } from 'react';
+
+import type {
+  BuilderMode,
+  ContainerEntity,
+  ContainerPanel,
+} from '@/types/container';
+import { openContainerLink } from '@/utils/openContainerLink';
 
 import ContainerShell from './ContainerShell';
 import WidgetSlot from './WidgetSlot';
@@ -98,16 +105,35 @@ export const TabsContainerView = (props: GridContainerProps) => {
   );
 };
 
+// buttons 컨테이너는 tabs/slider와 달리 위젯을 전환하지 않는다. 항상
+// panels[0]의 위젯 하나만 콘텐츠로 노출하고, 버튼(및 위젯 자체) 클릭은
+// 각 패널에 지정된 link로 화면 전환/링크 이동을 트리거하는 데 사용한다.
 export const ButtonsContainerView = (props: GridContainerProps) => {
-  const {
-    entity,
-    title,
-    isSelected,
-    mode,
-    onSelect,
-    onRemove,
-    onActivePanelChange,
-  } = props;
+  const { entity, title, isSelected, mode, onSelect, onRemove } = props;
+  const contentPanel = entity.panels[0] ?? null;
+
+  const handleButtonClick = (
+    event: MouseEvent<HTMLButtonElement>,
+    panel: ContainerPanel
+  ) => {
+    event.stopPropagation();
+
+    if (mode === 'view') {
+      openContainerLink(panel.link);
+      return;
+    }
+
+    onSelect();
+  };
+
+  const handleWidgetClick = (event: MouseEvent<HTMLDivElement>) => {
+    if (mode !== 'view' || !contentPanel?.link) {
+      return;
+    }
+
+    event.stopPropagation();
+    openContainerLink(contentPanel.link);
+  };
 
   return (
     <ContainerShell
@@ -120,22 +146,26 @@ export const ButtonsContainerView = (props: GridContainerProps) => {
       onRemove={onRemove}
     >
       <div style={S.panelNav}>
-        {entity.panels.map((panel, index) => (
+        {entity.panels.map((panel) => (
           <button
             key={panel.id}
             type='button'
-            style={S.panelButton(index === entity.activePanelIndex)}
-            onClick={(event) => {
-              event.stopPropagation();
-              onActivePanelChange(index);
-            }}
+            style={S.panelButton(false)}
+            onClick={(event) => handleButtonClick(event, panel)}
           >
             {panel.label}
           </button>
         ))}
       </div>
-      <div style={S.panelStage}>
-        <ActivePanel entity={entity} mode={mode} />
+      <div
+        style={{
+          ...S.panelStage,
+          cursor:
+            mode === 'view' && contentPanel?.link ? 'pointer' : undefined,
+        }}
+        onClick={handleWidgetClick}
+      >
+        <WidgetSlot mode={mode} widget={contentPanel?.widget ?? null} />
       </div>
     </ContainerShell>
   );

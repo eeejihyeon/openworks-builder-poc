@@ -224,6 +224,7 @@ const parseContainerPanel = (value: unknown): ContainerPanel | null => {
     id: value.id,
     label: value.label,
     widget: value.widget == null ? null : parseContainerWidget(value.widget),
+    link: typeof value.link === 'string' ? value.link : null,
   };
 };
 

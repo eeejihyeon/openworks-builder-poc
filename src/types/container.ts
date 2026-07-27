@@ -19,6 +19,8 @@ export type ContainerPanel = {
   id: string;
   label: string;
   widget: ContainerWidget | null;
+  /** buttons 컨테이너 전용: 클릭 시 이동할 링크 (URL 또는 내부 경로) */
+  link: string | null;
 };
 
 export type ContainerEntity = {

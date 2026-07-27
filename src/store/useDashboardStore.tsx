@@ -225,6 +225,13 @@ interface DashboardState {
   removeContainer: (containerId: string) => void;
   setDraggingContainerType: (containerType: ContainerType | null) => void;
   setActivePanel: (containerId: string, panelIndex: number) => void;
+  // buttons 컨테이너의 버튼 라벨/링크를 수정한다. (위젯 전환이 아닌
+  // 화면 전환/링크 이동에 사용)
+  updatePanelButton: (
+    containerId: string,
+    panelIndex: number,
+    patch: { label?: string; link?: string }
+  ) => void;
   assignWidgetToSelectedContainer: (widgetCatalogId: string) => void;
   clearWidgetFromActivePanel: (containerId: string) => void;
   updateActiveWidgetData: (
@@ -822,6 +829,54 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
           activePanelIndex: panelIndex,
         },
       },
+    });
+  },
+
+  updatePanelButton: (containerId, panelIndex, patch) => {
+    const { containers } = get();
+    const entity = containers[containerId];
+
+    if (!entity) {
+      return;
+    }
+
+    const panel = entity.panels[panelIndex];
+
+    if (!panel) {
+      return;
+    }
+
+    const nextPanels = entity.panels.map((item, index) => {
+      if (index !== panelIndex) {
+        return item;
+      }
+
+      const nextLabel = patch.label !== undefined ? patch.label : item.label;
+      const nextLink =
+        patch.link !== undefined
+          ? patch.link.trim() === ''
+            ? null
+            : patch.link
+          : item.link;
+
+      return {
+        ...item,
+        label: nextLabel,
+        link: nextLink,
+      };
+    });
+
+    set({
+      containers: {
+        ...containers,
+        [containerId]: {
+          ...entity,
+          panels: nextPanels,
+        },
+      },
+      // 텍스트 필드 수정도 "요소" 구성의 일부이므로 즉시 커스텀(수정됨)
+      // 상태로 전환한다. (히스토리 스택에는 반영하지 않는 기존 동작은 유지)
+      presetId: null,
     });
   },
 

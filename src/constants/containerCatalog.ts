@@ -37,7 +37,7 @@ export const CONTAINER_CATALOG: ContainerCatalogItem[] = [
   {
     id: 'buttons',
     label: 'Buttons',
-    description: '버튼으로 패널 전환',
+    description: '버튼/위젯 클릭 시 링크 이동',
     defaultW: 4,
     defaultH: 4,
     panelCount: 3,

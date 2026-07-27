@@ -25,6 +25,7 @@ export type HeaderButtonId = (typeof HEADER_BUTTON_ORDER)[number];
 export const SIDEBAR_SECTION_ORDER = [
   'containerTypes',
   'widgetList',
+  'buttonLinks',
   'widgetDataForm',
 ] as const;
 
